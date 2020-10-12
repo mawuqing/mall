@@ -1,11 +1,16 @@
 <template>
-  <h2>分类页</h2>
+
+<div>
+  分类页
+</div>
 
 </template>
 
 <script>
-export default {
-  name: 'Category'
+  export default {
+  name: 'Category',
+
+
 }
 </script>
 

@@ -6,7 +6,7 @@
       <div slot="item-text">首页</div>
     </tab-bar-item>
 
-    <tab-bar-item path="/category" live-color="deepPink" >
+    <tab-bar-item path="/category" live-color="deepPink"  >
       <img slot="item-img" src="../../assets/img/tabbar/1.png" alt="">
       <img slot="item-img-active" src="../../assets/img/tabbar/10.png" alt="">
       <div slot="item-text">分类</div>
@@ -35,7 +35,7 @@ export default {
   components: {
     TabBar,
     TabBarItem
-  }
+  },
 }
 </script>
 
