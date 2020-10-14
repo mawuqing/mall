@@ -30,16 +30,20 @@
         type: Boolean,
         default: false
       }
-
     },
 
     methods: {
       getTop(x, y, time = 300) {
-        this.scroll.scrollTo(x, y, time)
+        this.scroll&&this.scroll.scrollTo(x, y, time)
       },
 
       finishPullUp () {
-        this.scroll.finishPullUp()
+        this.scroll&&this.scroll.finishPullUp()
+      },
+
+      refresh(){
+        console.log('----');
+        this.scroll && this.scroll.refresh()
       }
 
     },
@@ -54,7 +58,7 @@
         //better-scroll插件实例里,属性pullUpLoad值是true的时候就可以上拉加载更多,false就不能上拉加载更多
         //封装组件的时候,pullUpLoad不能写死,因为调用组件的父组件有的需要上拉加载更多,有的不需要上拉加载更多,
         //因为我们应该把pullUpLoad属性的值通过父组件传过来,这边用props接收,然后在下面设置父组件穿过的值
-        pullUpLoad: this.pullUpLoad,
+        // pullUpLoad: this.pullUpLoad,
         click: true
       })
       //用实例对象bscroll监听事件scroll和pullingUp
@@ -64,13 +68,14 @@
         //为了把实时监听这个事件穿过调用者,即父组件,这里需要发射自定义事件this.$emit(),position参数传过去给父组件
         this.$emit('scroll', position)
       })
+
       //监听上拉加载更多事件
-      this.scroll.on('pullingUp', () => {
+      /*this.scroll.on('pullingUp', () => {
         // console.log('上拉加载更多')
         this.$emit('pullingUp')
 
       })
-
+       */
 
     }
   }

@@ -1,40 +1,38 @@
 <template>
   <div id="home">
-<!--    导航栏组件-->
-   <navigation-bar class="navHome"><div slot="navigationCenter">购物街</div></navigation-bar>
+    <!--    导航栏组件-->
+    <navigation-bar class="navHome"><div slot="navigationCenter">购物街</div></navigation-bar>
 
-<!--    使用scroll滚动组件-->
- <scroll class="scrollContent"
-         ref="refScroll"
-         :probe-type="3"
-         @scroll="scrollUp"
-         :pull-up-load="true"
-         @pullingUp="loadMore"
- >
+    <!--    使用scroll滚动组件-->
+    <scroll class="scrollContent"
+            ref="refScroll"
+            :probe-type="3"
+            @scroll="scrollUp"
+            :pull-up-load="true"
+    >
 
-   <!--    父组件Home中的数据banner传递给子组件props中的cbanner对象去接收,只有这边传了数据,那么props才能接收到数据-->
-   <home-child :cbanner = 'banner'></home-child>
-   <!--    推荐栏,父传子,这边把从服务器请求的数据传给子组件,然后子组件那边用props接收,因为是数组所以props里,加入设置默认值,必须要在函数里返回一个数组(可以是空数字)-->
-   <recommend :c-recommend = "recommend"></recommend>
-   <!--    本周流行组件-->
-   <feature></feature>
+      <!--    父组件Home中的数据banner传递给子组件props中的cbanner对象去接收,只有这边传了数据,那么props才能接收到数据-->
+      <home-child :cbanner = 'banner'></home-child>
+      <!--    推荐栏,父传子,这边把从服务器请求的数据传给子组件,然后子组件那边用props接收,因为是数组所以props里,加入设置默认值,必须要在函数里返回一个数组(可以是空数字)-->
+      <recommend :c-recommend = "recommend"></recommend>
+      <!--    本周流行组件-->
+      <feature></feature>
 
-   <!--  使用  control组件-->
-   <tab-control class="home-tab-control"
-                :control-title="titles"
-                @tabControl="getType"
-   ></tab-control>
+      <!--  使用  control组件-->
+      <tab-control class="home-tab-control"
+                   :control-title="titles"
+                   @tabControl="getType"
+      ></tab-control>
 
-   <!--    使用组件GoodsList-->
-   <goods-list :goods-list="goods[currentType].list"></goods-list>
- </scroll>
+      <!--    使用组件GoodsList-->
+      <goods-list :goods-list="goods[currentType].list"></goods-list>
+    </scroll>
 
-<!--   1 点击按钮返回顶部,组件不能直接监听,必须在原生事件后面加 .native才可以监听组件原生事件,
-       2.用v-show动态绝对是否显示back-top组件,isShow默认设置为false,当滚动的position绝对值达到某个
-       临界点的时候,把isShow修改为true,这样组件就显示出来了.
--->
+    <!--   1 点击按钮返回顶部,组件不能直接监听,必须在原生事件后面加 .native才可以监听组件原生事件,
+           2.用v-show动态绝对是否显示back-top组件,isShow默认设置为false,当滚动的position绝对值达到某个
+           临界点的时候,把isShow修改为true,这样组件就显示出来了.
+    -->
     <back-top @click.native="backTopClick" v-show="isShow"></back-top>
-
   </div>
 </template>
 
@@ -92,9 +90,40 @@ export default {
     this.getHomeGoodsDataMethod('pop')
     this.getHomeGoodsDataMethod('new')
     this.getHomeGoodsDataMethod('sell')
-  },
 
+  },
+  mounted() {
+    //防抖函数第二步: 把直接执行打印30次的函数名传入防抖函数,生成新的函数,并且接收这个新函数
+    const refresh = this.debounce(this.$refs.refScroll.refresh, 200)
+    //mounted()生命周期函数里监听goodsItem组件发射出来的事件总线的自定义事件,一旦监听到图片加载完成,就调用scroll的refresh()方法,重新计算可滚动高度.
+    this.$bus.$on('itemImageLoad', ()=>{
+      //防抖函数第三步,在事件总线这里调用被防抖函数处理过的新生成的函数refresh()
+      refresh()
+      // 防抖节流:对于refresh非常频繁的问题,进行防抖操作
+      //防抖函数: debounce,如果直接执行refresh()函数,那么会被执行30次
+      //所以需要把refresh函数传入到debounce防抖函数中,生成一个新的函数
+      //setTimeout()函数即使没有设置延迟时间,也会放最后执行
+
+      /*页面的加载顺序（正确的顺序）是
+      结构>样式>行为
+      也就是
+      html>css>JavaScript*/
+    })
+  },
   methods: {
+    //防抖函数第一步:首先封装一个防抖函数 debounce()函数
+    debounce (func,delay) {
+      //timer 表示计时器,定时器
+      let timer = null
+      return function(...args){
+        if(timer) clearTimeout(timer)
+        timer = setTimeout(() =>{
+          func.apply(this,args)
+        },delay)
+      }
+    },
+
+
     //1.事件监听相关的方法
     getType(index) {
       switch(index) {
@@ -121,13 +150,14 @@ export default {
       this.isShow = (- position.y) > 500
     },
 
-    loadMore () {
-      console.log('上啦加载更多')
+  /*  loadMore () {
+      // console.log('上啦加载更多')
       this.getHomeGoodsDataMethod(this.currentType)
-      this.$refs.refScroll.finishPullUp()
+      /!*this.$refs.refScroll.finishPullUp()
       //better-scroll的refresh()方法会重写计算可滚动区域的高度
-      this.$refs.refScroll.scroll.refresh()
-    },
+      this.$refs.refScroll.scroll.refresh()*!/
+      this.$refs.refScroll.finishPullUp()
+    },*/
 
     //2.网络请求的方法
     getHomeMultiDataMethod () {
