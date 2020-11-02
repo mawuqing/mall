@@ -42,7 +42,7 @@
       },
 
       refresh(){
-        console.log('----');
+        // console.log('----');
         this.scroll && this.scroll.refresh()
       }
 
@@ -59,10 +59,11 @@
         //封装组件的时候,pullUpLoad不能写死,因为调用组件的父组件有的需要上拉加载更多,有的不需要上拉加载更多,
         //因为我们应该把pullUpLoad属性的值通过父组件传过来,这边用props接收,然后在下面设置父组件穿过的值
         // pullUpLoad: this.pullUpLoad,
-        click: true
+        click: true,
+        pullUpLoad: this.pullUpLoad
       })
       //用实例对象bscroll监听事件scroll和pullingUp
-      this.scroll.on('scroll', (position) => {
+      this.scroll&&this.scroll.on('scroll', (position) => {
         // console.log(position);
         //实时监听并不需要在scroll组件里,而是在调用者那边实时监听,必须首页调用,那么就实时监听首页的滚动
         //为了把实时监听这个事件穿过调用者,即父组件,这里需要发射自定义事件this.$emit(),position参数传过去给父组件
@@ -70,12 +71,9 @@
       })
 
       //监听上拉加载更多事件
-      /*this.scroll.on('pullingUp', () => {
-        // console.log('上拉加载更多')
+      this.scroll&&this.scroll.on('pullingUp', () =>{
         this.$emit('pullingUp')
-
       })
-       */
 
     }
   }

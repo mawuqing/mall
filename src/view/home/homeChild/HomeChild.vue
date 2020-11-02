@@ -2,7 +2,7 @@
   <div>
     <swiper>
       <swiper-item v-for="(item,index) in cbanner" :key = "index">
-        <a :href="item.link"> <img :src="item.image" alt=""/></a>
+        <a :href="item.link"> <img :src="item.image" alt="" @load="imageLoad"></a>
       </swiper-item>
     </swiper>
   </div>
@@ -16,6 +16,11 @@
       Swiper,
       SwiperItem
     },
+    data() {
+      return {
+        isImageLoad: false
+      }
+    },
 
     props: {
 
@@ -28,6 +33,15 @@
         }
       }
 
+    },
+    methods: {
+      imageLoad () {
+        if(!this.isImageLoad) {
+        this.$emit('swiperImageLoad')
+          this.isImageLoad = true
+        // console.log('轮播图加载完成');
+        }
+      }
     }
   }
 </script>

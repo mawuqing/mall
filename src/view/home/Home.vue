@@ -3,29 +3,47 @@
     <!--    导航栏组件-->
     <navigation-bar class="navHome"><div slot="navigationCenter">购物街</div></navigation-bar>
 
+    <!--  复制 control组件解决吸顶效果,这组代码一定放滚动组件的外面
+          不能让这个代码和scroll一起滚动
+    -->
+    <tab-control v-show="isFixed"
+                 class="tab2Control"
+                 :control-title="titles"
+                 @tabControl="getType"
+                 ref="ref2TabControl"
+    ></tab-control>
+
     <!--    使用scroll滚动组件-->
     <scroll class="scrollContent"
-            ref="refScroll"
+            ref="scroll"
             :probe-type="3"
             @scroll="scrollUp"
             :pull-up-load="true"
+            @pullingUp="loadMore"
     >
 
       <!--    父组件Home中的数据banner传递给子组件props中的cbanner对象去接收,只有这边传了数据,那么props才能接收到数据-->
-      <home-child :cbanner = 'banner'></home-child>
+      <home-child
+        :cbanner = 'banner'
+        @swiperImageLoad="swiperImageLoad"
+      >
+
+      </home-child>
       <!--    推荐栏,父传子,这边把从服务器请求的数据传给子组件,然后子组件那边用props接收,因为是数组所以props里,加入设置默认值,必须要在函数里返回一个数组(可以是空数字)-->
       <recommend :c-recommend = "recommend"></recommend>
       <!--    本周流行组件-->
       <feature></feature>
 
       <!--  使用  control组件-->
-      <tab-control class="home-tab-control"
+      <tab-control class="tab1Control"
                    :control-title="titles"
                    @tabControl="getType"
+                   ref="ref1TabControl"
       ></tab-control>
 
+
       <!--    使用组件GoodsList-->
-      <goods-list :goods-list="goods[currentType].list"></goods-list>
+      <goods-list :goods-list="goods[currentType].list" ></goods-list>
     </scroll>
 
     <!--   1 点击按钮返回顶部,组件不能直接监听,必须在原生事件后面加 .native才可以监听组件原生事件,
@@ -49,6 +67,8 @@ import BackTop from '../../components/content/backTop/BackTop'
 import '../../network/homeRequest'
 import {getHomeMultiData,getHomeGoods} from "../../network/homeRequest";
 import '../../assets/css/base.css'
+import {debounce} from '../../components/common/utils/Debounce'
+import {itemListenerMixin} from '../../components/content/mixin/itemListenerMixin'
 
 
 export default {
@@ -78,8 +98,11 @@ export default {
        'sell': {page: 0, list: []}
      },
      currentType: 'pop',
-
-     isShow: false
+     isShow: false,
+     //必须知道滚动到多少距离的时候,开始加吸顶效果
+     tabOffsetTop: 0,
+     isFixed:false,
+     saveY: 0,
    }
  },
   created () {
@@ -92,37 +115,57 @@ export default {
     this.getHomeGoodsDataMethod('sell')
 
   },
-  mounted() {
+
+  mixins: [
+    itemListenerMixin
+  ],
+
+ /* mounted() {
     //防抖函数第二步: 把直接执行打印30次的函数名传入防抖函数,生成新的函数,并且接收这个新函数
-    const refresh = this.debounce(this.$refs.refScroll.refresh, 200)
-    //mounted()生命周期函数里监听goodsItem组件发射出来的事件总线的自定义事件,一旦监听到图片加载完成,就调用scroll的refresh()方法,重新计算可滚动高度.
-    this.$bus.$on('itemImageLoad', ()=>{
-      //防抖函数第三步,在事件总线这里调用被防抖函数处理过的新生成的函数refresh()
+    let refresh = debounce(this.$refs.refScroll.refresh, 200)
+    //对监听的事情进行保存
+    this.itemListener = () => {
       refresh()
+    }
+    //mounted()生命周期函数里监听goodsItem组件发射出来的事件总线的自定义事件,一旦监听到图片加载完成,就调用scroll的refresh()方法,重新计算可滚动高度.
+    this.$bus.$on('itemImageLoad', this.itemListener
+      //防抖函数第三步,在事件总线这里调用被防抖函数处理过的新生成的函数refresh()
+
       // 防抖节流:对于refresh非常频繁的问题,进行防抖操作
       //防抖函数: debounce,如果直接执行refresh()函数,那么会被执行30次
       //所以需要把refresh函数传入到debounce防抖函数中,生成一个新的函数
       //setTimeout()函数即使没有设置延迟时间,也会放最后执行
 
-      /*页面的加载顺序（正确的顺序）是
+      /!*页面的加载顺序（正确的顺序）是
       结构>样式>行为
       也就是
-      html>css>JavaScript*/
-    })
+      html>css>JavaScript*!/
+    )
+
+    //获取TabControl的offsetTop值,组件没有offsetTop值,只有组件下面的元素才有,所以需要用$el,$el是所有组件都有的属性,用于获取组件中的元素
+    //this.$refs.refTabControl.$el.offsetTop这样拿到的数据是不正确的,因为图片还没有加载完毕,没有撑起来,所以需要去监听这个组件上面的大轮播图加载完毕后在开始求值
+  },*/
+  destroyed() {
+    // console.log('home首页被销毁');
+    //为了阻止首页和其他页面频繁销毁,需要在App.vue里用<keep-alive>包路由跳转的<router-view>包裹进去.
+  },
+
+  activated() {
+    //切回原来页面的时候跳转到离开时的位置: scrollto(0,saveY)
+    this.$refs.scroll.refresh()
+    //下面必须是new出来的实例scroll 里的方法
+    this.$refs.scroll.scroll.scrollTo(0,this.saveY)
+  },
+
+  deactivated() {
+    //1.离开的时候保存一个saveY值
+    this.saveY = this.$refs.scroll.scroll.y
+    // console.log(this.saveY);
+    //2.离开的时候把goodsListItem的图片加载事情取消掉,取消home刷新
+    this.$bus.$off('itemImageLoad',this.itemListener)
+
   },
   methods: {
-    //防抖函数第一步:首先封装一个防抖函数 debounce()函数
-    debounce (func,delay) {
-      //timer 表示计时器,定时器
-      let timer = null
-      return function(...args){
-        if(timer) clearTimeout(timer)
-        timer = setTimeout(() =>{
-          func.apply(this,args)
-        },delay)
-      }
-    },
-
 
     //1.事件监听相关的方法
     getType(index) {
@@ -137,27 +180,35 @@ export default {
           this.currentType = 'sell'
           break
       }
+     //让两个tabControl的currentIndex 保持一致
+      this.$refs.ref2TabControl.currentIndex = index
+      this.$refs.ref1TabControl.currentIndex = index
     },
 
     backTopClick (){
-      console.log('backtop组件点击事件监听');
+      // console.log('backtop组件点击事件监听');
       // console.log(this.$refs.refScroll);
-      this.$refs.refScroll.getTop(0,0)
+      this.$refs.scroll.getTop(0,0)
     },
 
     scrollUp (position) {
       // console.log(position);
-      this.isShow = (- position.y) > 500
+      this.isShow = (- position.y) > 500;
+      this.isFixed = (-position.y) > this.tabOffsetTop
     },
 
-  /*  loadMore () {
-      // console.log('上啦加载更多')
+   loadMore () {
       this.getHomeGoodsDataMethod(this.currentType)
-      /!*this.$refs.refScroll.finishPullUp()
-      //better-scroll的refresh()方法会重写计算可滚动区域的高度
-      this.$refs.refScroll.scroll.refresh()*!/
-      this.$refs.refScroll.finishPullUp()
-    },*/
+   },
+
+    swiperImageLoad(){
+      this.tabOffsetTop = this.$refs.ref1TabControl.$el.offsetTop
+      // console.log(this.tabOffsetTop);
+    },
+
+    itemClick () {
+      console.log('goods点击监听');
+    },
 
     //2.网络请求的方法
     getHomeMultiDataMethod () {
@@ -178,7 +229,8 @@ export default {
         this.goods[type].list.push(...res.data.data.list)
         //把res数据push到数组后,页码必须加1,下面的page+1才是是真正的修改data里的page,而上面的page+1 作用域是本大括号,只是发送请求使用,不会修改data的page
         this.goods[type].page += 1
-
+        //Scroll框架默认只上拉加载一页,想要加载更多页,必须调用scroll的finish方法
+        this.$refs.scroll.finishPullUp()
 
       })
     }
@@ -198,26 +250,24 @@ export default {
   .navHome {
     background-color: var(--color-tint);
     color: white;
-    /*margin-bottom:1px;*/
-  /*使用position:fixed (固定位置,不让移动)*/
     position: fixed;
     left: 0;
     right: 0;
     top: 0;
-    /*z-index值较大的元素将叠加在z-index值较小的元素之上。对于未指定此属性的定位对象，
-    z-index 值为正数的对象会在其之上，而 z-index 值为负数的对象在其之下。*/
     z-index: 9;
   }
 
-  .home-tab-control {
-    /*吸顶或在某个位置停留效果:position:sticky,然后设置top属性在某个高度停留
+  /*.home-tab-control {
+    !*吸顶或在某个位置停留效果:position:sticky,然后设置top属性在某个高度停留
       在滚动没有达到设置top的值之前,position的属性是sticky,一旦达到top值,系统
       自动把position的属性设置为fixed,固定, 这个属性是最新的,很多浏览器不支持
       移动端
-    */
+
+      这个设置是在原生滚动里,如果使用better-scroll,这个吸顶功能就失效了
+    *!
     position:sticky;
     top:44px;
-  }
+  }*/
 
   .scrollContent {
     position: absolute;
@@ -227,6 +277,15 @@ export default {
     bottom: 49px;
 
   }
+
+  .tab2Control {
+    position: relative;
+    z-index: 9;
+  }
+
+
+
+
 
 
 </style>

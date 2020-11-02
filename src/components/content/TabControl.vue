@@ -26,8 +26,7 @@
 
     data() {
       return {
-
-        currentIndex: 0
+        currentIndex: 0,
       }
     },
 

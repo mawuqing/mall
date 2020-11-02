@@ -1,6 +1,9 @@
 <template>
   <div id="app">
-    <router-view></router-view>
+    <keep-alive exclude="Detail">
+<!--      keep-alive标签可以禁止组件频繁销毁创建,同时可以让activated()和deactivated()函数生效-->
+      <router-view></router-view>
+    </keep-alive>
     <main-tab-bar></main-tab-bar>
   </div>
 </template>
